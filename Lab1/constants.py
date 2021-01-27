@@ -1,0 +1,11 @@
+
+
+'''
+PANEL_1 = 25
+PANEL_2 = 24
+PANEL_3 = 12
+PANEL_4 = 23
+PANEL_5 = 16
+PANEL_6 = 21
+PANEL_7 = 20
+'''
