@@ -160,7 +160,7 @@ def main():
         
         # implementing 20 second limit
         if not firstLoop:
-            time.sleep(6)
+            time.sleep(7)
         else:
             firstLoop = False
             
@@ -170,37 +170,39 @@ def main():
         # 2 - Button pressed. Traffic Light 2 blinks blue 3 times then turns red
         GPIO.output(GREEN_2, 0)
         time.sleep(.01)
-        for i in range(4):
+        for i in range(3):
             GPIO.output(BLUE_2, 1)
-            time.sleep(1)
+            time.sleep(0.1)
             GPIO.output(BLUE_2, 0)
-            time.sleep(.01)
+            time.sleep(1)
             
         GPIO.output(RED_2, 1)
         
         # 3 - Traffic Light 2 turns red. Traffic Light 1 turns green then countdown
         # from 9 to 0 begins in seconds
         GPIO.output(GREEN_1, 1)
+        GPIO.output(RED_1, 0)
         for i in reversed(range(10)):
             # 4 - Countdown reaches 4. Traffic Light 1 flashes blue until time 0
             if i == 0:
                 GPIO.output(GREEN_1, 0)
                 time.sleep(.01)
                 
-                panelNumChange(i)
-                
                 GPIO.output(RED_1, 1)
                 GPIO.output(GREEN_2, 1)
+                panelNumChange(i)
+                time.sleep(1)
             elif i <= 4:
+                print
                 GPIO.output(GREEN_1, 0)
                 time.sleep(.01)
                 
                 panelNumChange(i)
                 
                 GPIO.output(BLUE_1, 1)
-                time.sleep(1)
+                time.sleep(0.1)
                 GPIO.output(BLUE_1, 0)
-                time.sleep(.01)
+                time.sleep(1)
             else:
                 panelNumChange(i)
                 time.sleep(1)
@@ -208,6 +210,7 @@ def main():
         
         # 5 - Countdown reaches 0. Traffic Light 1 turns ref and Traffic Light 2 turns green
         GPIO.output(RED_1, 1)
+        GPIO.output(GREEN_2, 1)
     
 
 if __name__ == "__main__":
