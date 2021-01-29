@@ -6,7 +6,7 @@ import signal
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
-# Switch
+# BUTTON
 GPIO.setup(19, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 # Traffic Light 1
@@ -28,7 +28,7 @@ GPIO.setup(16, GPIO.OUT)
 GPIO.setup(20, GPIO.OUT)
 GPIO.setup(21, GPIO.OUT)
 
-SWITCH = 19
+BUTTON = 19
 
 BLUE_1 = 4
 GREEN_1 = 17
@@ -134,6 +134,8 @@ def panelNumChange(num):
         
 
 def main():
+    print("Use CTRL+C to kill lights")
+    
     signal.signal(signal.SIGINT, CtrlC_handler)
     firstLoop = True
     
@@ -164,7 +166,7 @@ def main():
         else:
             firstLoop = False
             
-        while not GPIO.input(SWITCH):
+        while not GPIO.input(BUTTON):
             pass
             
         # 2 - Button pressed. Traffic Light 2 blinks blue 3 times then turns red
