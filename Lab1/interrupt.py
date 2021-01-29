@@ -212,9 +212,8 @@ def main():
     # 1 - Button not yet pressed. Traffic Light 2 is Green
     GPIO.output(GREEN_2, 1)
     
-    # Main Program Execution Loop
-    while True:
-        pass
+    # Main Program Loop
+    time.sleep(1000000)
 
     
 
