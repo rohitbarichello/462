@@ -42,8 +42,8 @@ def sine_wave(FREQUENCY, MAX_OUTPUT_V):
 	while True:
 		if GPIO.input(BUTTON):
 			break
-		voltage = (4096)*((MAX_OUTPUT_V / 5.0) * math.sin((FREQUENCY)*t))
-		#voltage = (2048)*(1.0 + (MAX_OUTPUT_V / 5.0) * math.sin((FREQUENCY)*t))
+		#voltage = (4096)*((MAX_OUTPUT_V / 5.0) * math.sin((FREQUENCY)*t))
+		voltage = (2048)*(1.0 + (MAX_OUTPUT_V / 5.0) * math.sin((FREQUENCY)*t))
 		dac.set_voltage(int(voltage))
 		
 		t += tStep
@@ -78,10 +78,9 @@ def CtrlC_handler(signum, frame):
 		
 def main():
 	print("Use CTRL+C to exit. Press the button to choose a waveform")
-	#GPIO.add_event_detect(BUTTON, GPIO.FALLING, handleButtonPress)
+	GPIO.add_event_detect(BUTTON, GPIO.FALLING, handleButtonPress)
 	signal.signal(signal.SIGINT, CtrlC_handler)
 	
-	sine_wave(float(1500000), float(5))
 	time.sleep(100000)
 
 
