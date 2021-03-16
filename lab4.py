@@ -1,6 +1,7 @@
 import time as t
 import signal
 import matplotlib.pyplot as plt
+import numpy as np
 
 import smbus  # import SMBus module of I2C
 from time import sleep  # import
@@ -21,13 +22,7 @@ GYRO_ZOUT_H = 0x47
 bus = smbus.SMBus(1) 	# or bus = smbus.SMBus(0) for older version boards
 Device_Address = 0x68   # MPU6050 device address
 
-read_from_MPU = TRUE
-
-
-def CtrlC_handler(signum, frame):
-    read_from_MPU = False
-
-
+	
 def MPU_Init():
     # write to sample rate register
     bus.write_byte_data(Device_Address, SMPLRT_DIV, 7)
@@ -59,65 +54,76 @@ def read_raw_data(addr):
     return value
 
 
-def plot(xdata, ydata, zdata, elapsed_time):
-    plt.plot(xdata, elapsed_time)
-    plt.plot(ydata, elapsed_time)
-    plt.plot(zdata, elapsed_time)
-
+def plot(xdata, ydata, zdata, timedata):
+    plt.plot(timedata, xdata)
+    plt.plot(timedata, ydata)
+    plt.plot(timedata, zdata)
+    
     plt.show()
 
 
 def main():
     MPU_Init()
-    signal.signal(signal.SIGINT, CtrlC_handler)
 
     xdata = []
     ydata = []
     zdata = []
+    timedata = []
+    
+    #contains the vector sum of all three readings, x, y, and z
+    sdata = []
+    filteredSData = []
+    filteredSDataTime = []
 
+    window = 10
+    pointCount = 0
     countdown = 5
 
     print("Get ready to step")
     while countdown > 0:
-        print(countdown - 1)
-        sleep(1)
+	    print(countdown)
+	    sleep(1)
+	    
+	    countdown = countdown - 1
 
     elapsed_time = 0
     start_time = t.time()
 
     print(" Reading Data of Gyroscope and Accelerometer")
-    print("Use CTRL+C to end data collection and plot collected data")
 
-    while read_from_MPU:
+    while elapsed_time <= 10:
         # Keep track of elapsed time
         elapsed_time = t.time() - start_time
+        pointCount += 1
 
         # Read data from MPU
         acc_x = read_raw_data(ACCEL_XOUT_H)
         acc_y = read_raw_data(ACCEL_YOUT_H)
         acc_z = read_raw_data(ACCEL_ZOUT_H)
-        gyro_x = read_raw_data(GYRO_XOUT_H)
-        gyro_y = read_raw_data(GYRO_YOUT_H)
-        gyro_z = read_raw_data(GYRO_ZOUT_H)
 
         # Full scale range +/- 250 degree/C as per sensitivity scale factor
         Ax = acc_x/16384.0
         Ay = acc_y/16384.0
         Az = acc_z/16384.0
-        Gx = gyro_x/131.0
-        Gy = gyro_y/131.0
-        Gz = gyro_z/131.0
+	As = abs(Ax) + abs(Ay) + abs(Az)
 
         # prepare data for plotting
-        xdata.append(acc_x)
-        ydata.append(acc_y)
-        ydata.append(acc_z)
-        elapsed_time.append(elapsed_time)
+        xdata.append(Ax)
+        ydata.append(Ay)
+        zdata.append(Az)
+	sdata.append(As)
+        timedata.append(elapsed_time)
+	
+	if pointCount % 10 == 0:
+		filteredSData.append(As)
+		filteredSDataTime(elapsed_time)
 
-        #print ("Gx=%.2f" %Gx, u'\u00b0'+ "/s", "\tGy=%.2f" %Gy, u'\u00b0'+ "/s", "\tGz=%.2f" %Gz, u'\u00b0'+ "/s", "\tAx=%.2f g" %Ax, "\tAy=%.2f g" %Ay, "\tAz=%.2f g" %Az)
-        sleep(0.1)
+	#print collected data
+        #print ("\tAx=%.2f g" %Ax, "\tAy=%.2f g" %Ay, "\tAz=%.2f g" %Az)
 
-    plot(xdata, ydata, zdata, elapsed_time)
+        sleep(0.01)
+
+    plot(xdata, ydata, zdata, filteredSData, timedata, filteredSDataTime)
 
 
 if __name__ == "__main__":
