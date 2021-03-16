@@ -54,10 +54,11 @@ def read_raw_data(addr):
     return value
 
 
-def plot(xdata, ydata, zdata, timedata):
-    plt.plot(timedata, xdata)
-    plt.plot(timedata, ydata)
-    plt.plot(timedata, zdata)
+def plot(data, time):
+    #plt.plot(timedata, xdata)
+    #plt.plot(timedata, ydata)
+    #plt.plot(timedata, zdata)
+    plt.plot(data, time)
 
     plt.show()
 
@@ -70,15 +71,23 @@ def main():
     zdata = []
     timedata = []
 
-    # contains the vector sum of all three readings, x, y, and z
+    # s is the vector sum of all three readings, x, y, and z
     sdata = []
+    
+    #capturing filtered s data
+    window = []
     filteredSData = []
     filteredSDataTime = []
+    
+    #capturing smoothed data (using finite difference)
+    smoothedSData = []
+    smoothedSDataTime = []
 
-    window = 10
+
     pointCount = 0
     countdown = 5
 
+    #countdown to program execution
     print("Get ready to step")
     while countdown > 0:
         print(countdown)
@@ -86,11 +95,12 @@ def main():
 
         countdown = countdown - 1
 
+    #prepare to capture elapsed time
     elapsed_time = 0
     start_time = t.time()
 
+    #Start reading data
     print(" Reading Data of Gyroscope and Accelerometer")
-
     while elapsed_time <= 10:
         # Keep track of elapsed time
         elapsed_time = t.time() - start_time
@@ -112,18 +122,28 @@ def main():
         ydata.append(Ay)
         zdata.append(Az)
         sdata.append(As)
+        window.append(As)
         timedata.append(elapsed_time)
 
+	#filter data by taking only the max acceleration vector sum of each 10 point window
         if pointCount % 10 == 0:
-            filteredSData.append(As)
-            filteredSDataTime(elapsed_time)
+            filteredSData.append(max(window))
+            filteredSDataTime.append(elapsed_time)
+            window = []
+	    
+	    #take the finite difference of each filtered point to smooth the data
+	    if len(filteredSData) > 3:
+		    smoothedSData.append((filteredSData[-1] + filteredData[-3])/ 2)
+		    smoothedSDataTime.append(elapsed_time)
+		    
 
         # print collected data
         #print ("\tAx=%.2f g" %Ax, "\tAy=%.2f g" %Ay, "\tAz=%.2f g" %Az)
 
-        sleep(0.01)
+        sleep(0.001)
 
-    plot(xdata, ydata, zdata, filteredSData, timedata, filteredSDataTime)
+    #plot collected data
+    plot(smoothedSData, smoothedSDataTime)
 
 
 if __name__ == "__main__":
