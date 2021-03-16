@@ -73,21 +73,20 @@ def main():
 
     # s is the vector sum of all three readings, x, y, and z
     sdata = []
-    
-    #capturing filtered s data
+
+    # capturing filtered s data
     window = []
     filteredSData = []
     filteredSDataTime = []
-    
-    #capturing smoothed data (using finite difference)
+
+    # capturing smoothed data (using finite difference)
     smoothedSData = []
     smoothedSDataTime = []
-
 
     pointCount = 0
     countdown = 5
 
-    #countdown to program execution
+    # countdown to program execution
     print("Get ready to step")
     while countdown > 0:
         print(countdown)
@@ -95,11 +94,11 @@ def main():
 
         countdown = countdown - 1
 
-    #prepare to capture elapsed time
+    # prepare to capture elapsed time
     elapsed_time = 0
     start_time = t.time()
 
-    #Start reading data
+    # Start reading data
     print(" Reading Data of Gyroscope and Accelerometer")
     while elapsed_time <= 10:
         # Keep track of elapsed time
@@ -125,24 +124,24 @@ def main():
         window.append(As)
         timedata.append(elapsed_time)
 
-	#filter data by taking only the max acceleration vector sum of each 10 point window
+        # filter data by taking only the max acceleration vector sum of each 10 point window
         if pointCount % 10 == 0:
             filteredSData.append(max(window))
             filteredSDataTime.append(elapsed_time)
             window = []
-	    
-	    #take the finite difference of each filtered point to smooth the data
-	    if len(filteredSData) > 3:
-		    smoothedSData.append((filteredSData[-1] + filteredData[-3])/ 2)
-		    smoothedSDataTime.append(elapsed_time)
-		    
+
+            # take the finite difference of each filtered point to smooth the data
+            if len(filteredSData) > 3:
+                smoothedSData.append(
+                    (filteredSData[-1] + filteredData[-3]) / 2)
+                smoothedSDataTime.append(elapsed_time)
 
         # print collected data
         #print ("\tAx=%.2f g" %Ax, "\tAy=%.2f g" %Ay, "\tAz=%.2f g" %Az)
 
         sleep(0.001)
 
-    #plot collected data
+    # plot collected data
     plot(smoothedSData, smoothedSDataTime)
 
 
