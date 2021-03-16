@@ -22,7 +22,7 @@ GYRO_ZOUT_H = 0x47
 bus = smbus.SMBus(1) 	# or bus = smbus.SMBus(0) for older version boards
 Device_Address = 0x68   # MPU6050 device address
 
-	
+
 def MPU_Init():
     # write to sample rate register
     bus.write_byte_data(Device_Address, SMPLRT_DIV, 7)
@@ -58,7 +58,7 @@ def plot(xdata, ydata, zdata, timedata):
     plt.plot(timedata, xdata)
     plt.plot(timedata, ydata)
     plt.plot(timedata, zdata)
-    
+
     plt.show()
 
 
@@ -69,8 +69,8 @@ def main():
     ydata = []
     zdata = []
     timedata = []
-    
-    #contains the vector sum of all three readings, x, y, and z
+
+    # contains the vector sum of all three readings, x, y, and z
     sdata = []
     filteredSData = []
     filteredSDataTime = []
@@ -81,10 +81,10 @@ def main():
 
     print("Get ready to step")
     while countdown > 0:
-	    print(countdown)
-	    sleep(1)
-	    
-	    countdown = countdown - 1
+        print(countdown)
+        sleep(1)
+
+        countdown = countdown - 1
 
     elapsed_time = 0
     start_time = t.time()
@@ -105,20 +105,20 @@ def main():
         Ax = acc_x/16384.0
         Ay = acc_y/16384.0
         Az = acc_z/16384.0
-	As = abs(Ax) + abs(Ay) + abs(Az)
+        As = abs(Ax) + abs(Ay) + abs(Az)
 
         # prepare data for plotting
         xdata.append(Ax)
         ydata.append(Ay)
         zdata.append(Az)
-	sdata.append(As)
+        sdata.append(As)
         timedata.append(elapsed_time)
-	
-	if pointCount % 10 == 0:
-		filteredSData.append(As)
-		filteredSDataTime(elapsed_time)
 
-	#print collected data
+        if pointCount % 10 == 0:
+            filteredSData.append(As)
+            filteredSDataTime(elapsed_time)
+
+        # print collected data
         #print ("\tAx=%.2f g" %Ax, "\tAy=%.2f g" %Ay, "\tAz=%.2f g" %Az)
 
         sleep(0.01)
