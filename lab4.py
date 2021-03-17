@@ -56,7 +56,7 @@ def read_raw_data(addr):
 
 def plot(data, time, d, t):
     #plt.plot(time, data)
-    plt.plot(t,d)
+    plt.plot(t, d)
 
     plt.show()
 
@@ -128,19 +128,18 @@ def main():
             filteredSData.append(max(window))
             filteredSDataTime.append(elapsed_time)
             window = []
-	    
+
             n = len(filteredSData) - 1
 
             # moving average to smooth data
             if len(filteredSData) > 10:
-                
+
                 smoothedSData.append((sum(filteredSData[n-10:n]) / 10))
                 smoothedSDataTime.append(elapsed_time)
 
             if len(filteredSData) > 3 and filteredSData[n] - filteredSData[n - 1] > 0.5:
-		    stepCount += 1
-		    print(f'step {stepCount}')
-			    
+                stepCount += 1
+                print(f'step {stepCount}')
 
         # print collected data
         #print ("\tAx=%.2f g" %Ax, "\tAy=%.2f g" %Ay, "\tAz=%.2f g" %Az)
