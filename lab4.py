@@ -54,11 +54,9 @@ def read_raw_data(addr):
     return value
 
 
-def plot(data, time):
-    #plt.plot(timedata, xdata)
-    #plt.plot(timedata, ydata)
-    #plt.plot(timedata, zdata)
-    plt.plot(data, time)
+def plot(data, time, d, t):
+    #plt.plot(time, data)
+    plt.plot(t,d)
 
     plt.show()
 
@@ -79,12 +77,13 @@ def main():
     filteredSData = []
     filteredSDataTime = []
 
-    # capturing smoothed data (using finite difference)
+    # capturing smoothed data
     smoothedSData = []
     smoothedSDataTime = []
 
     pointCount = 0
     countdown = 5
+    stepCount = 0
 
     # countdown to program execution
     print("Get ready to step")
@@ -129,12 +128,19 @@ def main():
             filteredSData.append(max(window))
             filteredSDataTime.append(elapsed_time)
             window = []
+	    
+            n = len(filteredSData) - 1
 
-            # take the finite difference of each filtered point to smooth the data
-            if len(filteredSData) > 3:
-                smoothedSData.append(
-                    (filteredSData[-1] + filteredData[-3]) / 2)
+            # moving average to smooth data
+            if len(filteredSData) > 10:
+                
+                smoothedSData.append((sum(filteredSData[n-10:n]) / 10))
                 smoothedSDataTime.append(elapsed_time)
+
+            if len(filteredSData) > 3 and filteredSData[n] - filteredSData[n - 1] > 0.5:
+		    stepCount += 1
+		    print(f'step {stepCount}')
+			    
 
         # print collected data
         #print ("\tAx=%.2f g" %Ax, "\tAy=%.2f g" %Ay, "\tAz=%.2f g" %Az)
@@ -142,7 +148,7 @@ def main():
         sleep(0.001)
 
     # plot collected data
-    plot(smoothedSData, smoothedSDataTime)
+    plot(smoothedSData, smoothedSDataTime, filteredSData, filteredSDataTime)
 
 
 if __name__ == "__main__":
