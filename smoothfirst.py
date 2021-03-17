@@ -54,13 +54,17 @@ def read_raw_data(addr):
     return value
 
 
-def plot(smoothedSData, smoothedSDataTime, filteredSData, filteredSDataTime):
-    plt.plot(smoothedSDataTime, smoothedSData, color="blue")
+def plot(smoothedSData, smoothedSDataTime, filteredSData, filteredSDataTime, smoothedSData2, smoothedSDataTime2):
+    #plt.plot(smoothedSDataTime, smoothedSData, color="blue")
     plt.plot(filteredSDataTime, filteredSData, color="red")
+    plt.plot(smoothedSDataTime2, smoothedSData2, color="green")
 
     plt.show()
 
-
+def percent_change(val1, val2):
+    return (val2 - val1) / val2
+    
+    
 def main():
     MPU_Init()
 
@@ -80,6 +84,8 @@ def main():
     # capturing smoothed data
     smoothedSData = []
     smoothedSDataTime = []
+    smoothedSData2 = []
+    smoothedSDataTime2 = []
 
     pointCount = 0
     countdown = 5
@@ -99,7 +105,7 @@ def main():
 
     # Start reading data
     print(" Reading Data of Gyroscope and Accelerometer")
-    while elapsed_time <= 10:
+    while elapsed_time <= 28:
         # Keep track of elapsed time
         elapsed_time = t.time() - start_time
         pointCount += 1
@@ -120,26 +126,31 @@ def main():
         ydata.append(Ay)
         zdata.append(Az)
         sdata.append(As)
-        window.append(As)
         timedata.append(elapsed_time)
 
-        # filter data by taking only the max acceleration vector sum of each 10 point window
-        if pointCount % 10 == 0:
-            filteredSData.append(max(window))
-            filteredSDataTime.append(elapsed_time)
-            window = []
+        if len(sdata) > 3:
+            smoothedSData.append(((sdata[-1] + sdata[-3]) / 2))
+            smoothedSDataTime.append(elapsed_time)
+            
+            window.append(As)
+            
+            if pointCount % 5 == 0:
+                filteredSData.append(max(window))
+                filteredSDataTime.append(elapsed_time)
+                window = []
+                
+                n = len(filteredSData) - 1
+                
+                if len(filteredSData) > 10:
+                    smoothedSData2.append((sum(filteredSData[n-10:n]) / 10))
+                    smoothedSDataTime2.append(elapsed_time)
 
-            n = len(filteredSData) - 1
+                    m = len(smoothedSData2) - 1
 
-            # moving average to smooth data
-            if len(filteredSData) > 10:
-
-                smoothedSData.append((sum(filteredSData[n-10:n]) / 10))
-                smoothedSDataTime.append(elapsed_time)
-
-            if len(filteredSData) > 3 and filteredSData[n] - filteredSData[n - 1] > 0.2:
-                stepCount += 1
-                print(f'step {stepCount}')
+                    if len(smoothedSData2) > 3 and percent_change(smoothedSData2[m], smoothedSData2[m - 1]) < -0.032:
+                        stepCount += 1
+                        print(f'step {stepCount}')
+            
 
         # print collected data
         #print ("\tAx=%.2f g" %Ax, "\tAy=%.2f g" %Ay, "\tAz=%.2f g" %Az)
@@ -147,7 +158,7 @@ def main():
         sleep(0.001)
 
     # plot collected data
-    plot(smoothedSData, smoothedSDataTime, filteredSData, filteredSDataTime)
+    plot(smoothedSData, smoothedSDataTime, filteredSData, filteredSDataTime, smoothedSData2, smoothedSDataTime2)
 
 
 if __name__ == "__main__":
