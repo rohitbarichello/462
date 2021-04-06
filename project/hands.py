@@ -1,4 +1,4 @@
-import cv2
+from cv2 import cv2
 import numpy as np
 import math
 cap = cv2.VideoCapture(0)
@@ -9,64 +9,64 @@ while True:
           #therefore this try error statement
           
         ret, frame = cap.read()
-        frame=cv2.flip(frame,1)
-        kernel = np.ones((3,3),np.uint8)
+        # frame=cv2.flip(frame,1)
+        # kernel = np.ones((3,3),np.uint8)
         
-        #define region of interest
-        roi=frame[100:300, 100:300]
+        # #define region of interestd
+        # roi=frame[100:300, 100:300]
         
         
-        cv2.rectangle(frame,(100,100),(300,300),(0,255,0),0)    
-        hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+        # cv2.rectangle(frame,(100,100),(300,300),(0,255,0),0)    
+        # hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
         
         
          
-    # define range of skin color in HSV
-        lower_skin = np.array([0,20,70], dtype=np.uint8)
-        upper_skin = np.array([20,255,255], dtype=np.uint8)
+        # # define range of skin color in HSV
+        # lower_skin = np.array([0,20,70], dtype=np.uint8)
+        # upper_skin = np.array([20,255,255], dtype=np.uint8)
         
-     #extract skin colur imagw  
-        mask = cv2.inRange(hsv, lower_skin, upper_skin)
+        # #extract skin colur imagw  
+        # mask = cv2.inRange(hsv, lower_skin, upper_skin)
         
    
         
-    #extrapolate the hand to fill dark spots within
-        mask = cv2.dilate(mask,kernel,iterations = 4)
+        # #extrapolate the hand to fill dark spots within
+        # mask = cv2.dilate(mask,kernel,iterations = 4)
         
-    #blur the image
-        mask = cv2.GaussianBlur(mask,(5,5),100) 
-
-
+        # #blur the image
+        # mask = cv2.GaussianBlur(mask,(5,5),100) 
         
-#     #find contours
-#         _,contours,hierarchy= cv2.findContours(mask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+        
+        
+        # #find contours
+        # _,contours,hierarchy= cv2.findContours(mask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
     
-#    #find contour of max area(hand)
-#         cnt = max(contours, key = lambda x: cv2.contourArea(x))
+        # #find contour of max area(hand)
+        # cnt = max(contours, key = lambda x: cv2.contourArea(x))
         
-    #approx the contour a little
+        # #approx the contour a little
         # epsilon = 0.0005*cv2.arcLength(cnt,True)
         # approx= cv2.approxPolyDP(cnt,epsilon,True)
        
         
-    # #make convex hull around hand
-    #     hull = cv2.convexHull(cnt)
+        # #make convex hull around hand
+        # hull = cv2.convexHull(cnt)
         
-    #  #define area of hull and area of hand
-    #     areahull = cv2.contourArea(hull)
-    #     areacnt = cv2.contourArea(cnt)
+        # #define area of hull and area of hand
+        # areahull = cv2.contourArea(hull)
+        # areacnt = cv2.contourArea(cnt)
       
-    # #find the percentage of area not covered by hand in convex hull
-    #     arearatio=((areahull-areacnt)/areacnt)*100
+        # #find the percentage of area not covered by hand in convex hull
+        # arearatio=((areahull-areacnt)/areacnt)*100
     
-    #  #find the defects in convex hull with respect to hand
-    #     hull = cv2.convexHull(approx, returnPoints=False)
-    #     defects = cv2.convexityDefects(approx, hull)
+        # #find the defects in convex hull with respect to hand
+        # hull = cv2.convexHull(approx, returnPoints=False)
+        # defects = cv2.convexityDefects(approx, hull)
         
-    # l = no. of defects
+        # # l = no. of defects
         # l=0
         
-    #code for finding no. of defects due to fingers
+        # #code for finding no. of defects due to fingers
         # for i in range(defects.shape[0]):
         #     s,e,f,d = defects[i,0]
         #     start = tuple(approx[s][0])
@@ -137,15 +137,21 @@ while True:
         #     cv2.putText(frame,'reposition',(10,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
             
         #show the windows
-        cv2.imshow('mask',mask)
+        # cv2.imshow('mask',mask)
         cv2.imshow('frame',frame)
+
     except:
         print("error")
         
     
-    k = cv2.waitKey(5) & 0xFF
-    if k == 27:
+    if cv2.waitKey(20) & 0xFF == ord('d'):
         break
     
+
+
 cv2.destroyAllWindows()
-cap.release()  
+cap.release()    
+    
+
+
+
