@@ -1,0 +1,2 @@
+https://docs.opencv.org/master/da/d97/tutorial_threshold_inRange.html
+https://github.com/Sadaival/Hand-Gestures

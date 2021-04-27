@@ -1,0 +1,2 @@
+Convolution: a function that essentially filters out matching values from a matrix using a kernel matrix
+In this program, we're convoluting by a matrix of 1s, so the net effect is to smooth the image
