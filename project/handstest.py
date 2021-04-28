@@ -61,27 +61,74 @@ while True:
         # perimeter to expand the image by. 
         epsilon = 0.0005*cv2.arcLength(contour,True)
         approx= cv2.approxPolyDP(contour,epsilon,True)
-        cv2.drawContours(frame, [contour], 0, (0,255,0), 1)
+        cv2.drawContours(roi, [contour], 0, (0,255,0), 1)
+        # print(contour)
         
         # create a convex hull around the hand. A convex hull is a polygon that perfectly contains an object using straight lines.
         # it only has convex angles, no concave angles. It will create vertices at the fingertips when detecting hands.
         hull = cv2.convexHull(contour)
-        cv2.drawContours(frame, [hull], 0, (0,255,0), 3)
+        cv2.drawContours(roi, [hull], 0, (0,255,0), 3)
         
         # get area of hull and contour
         hull_area = cv2.contourArea(hull)
         contour_area = cv2.contourArea(contour)
+
+        # get centroid of hull
+        hull_moments = cv2.moments(hull)
+        centroid_x = int(hull_moments["m10"] / hull_moments["m00"])
+        centroid_y = int(hull_moments["m01"] / hull_moments["m00"])
+        cv2.circle(roi, (centroid_x, centroid_y), 5, (255, 0, 0))
       
         # find the percentage of the area of the convex hull not overlapping with the hand
         area_ratio = ((hull_area-contour_area) / contour_area) * 100
 
         # get hull defects. defects are essentially the valleys in a convex hull. since the hull is only convex angles, the defects are
         # essentially all the would-be concave angles. In a hand, these end up being the valleys between the fingers
-        hull = cv2.convexHull(contour, returnPoints=False)
+        hull = cv2.convexHull(approx, returnPoints=False)
         defects = cv2.convexityDefects(approx, hull)
 
-        # cv2.drawContours(frame, [defects], 0, (0,255,0), 3)
+        # l is the number of defects we find
+        l = 0
+        
+        # finding our defects
+        for i in range(defects.shape[0]):
+            start, end, defect, distance = defects[i,0]
+            start = tuple(approx[start][0])
+            end = tuple(approx[end][0])
+            defect = tuple(approx[defect][0])
+                       
+            # find area of triangle using herons formula
+            a = math.sqrt((end[0] - start[0])**2 + (end[1] - start[1])**2)
+            b = math.sqrt((defect[0] - start[0])**2 + (defect[1] - start[1])**2)
+            c = math.sqrt((end[0] - defect[0])**2 + (end[1] - defect[1])**2)
+            s = (a+b+c)/2
+            triangle_area = math.sqrt(s*(s-a)*(s-b)*(s-c))
 
+            # find distance between the defect point and the convex hull
+            d = (2 * triangle_area) / a
+
+            # law of cosines to find angle formed by triangle formed by two hull vertices and a defect point
+            angle = math.acos((b**2 + c**2 - a**2)/(2*b*c)) * 57
+            
+            # # ignore angles > 90 and ignore points very close to convex hull(they generally come due to noise)
+            if angle <= 90 and d > 30:
+                l += 1
+                cv2.circle(roi, far, 3, [255,0,0], -1)
+
+            # l += 1
+            # cv2.circle(roi, defect, 3, [0, 0, 255])
+            
+            # #draw lines around hand
+            # cv2.line(roi,start, end, [0,255,0], 2)
+            
+        l+=1
+        
+        # #print corresponding gestures which are in their ranges
+        # font = cv2.FONT_HERSHEY_SIMPLEX
+        # if l==1:
+        #     if arearatio<17.5:
+        #         cv2.putText(frame,'Thumbs Up',(0,50), font, 2, (0,0,255), 3, cv2.LINE_AA)
+                    
             
         cv2.imshow('mask',mask)
         cv2.imshow('frame',frame)
