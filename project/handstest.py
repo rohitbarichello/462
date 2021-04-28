@@ -31,8 +31,8 @@ while True:
         roi_hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
          
         # define range of skin color in HSV. lower_skin is lightest skin value and upper_skin is darkest
-        skin_lower_bound = np.array([0,20,70], dtype=np.uint8) # Original: 0, 20, 70
-        skin_upper_bound = np.array([20,255,255], dtype=np.uint8) # Original: 20, 255, 255
+        skin_lower_bound = np.array([0,55,142], dtype=np.uint8) # Original: 0, 20, 70
+        skin_upper_bound = np.array([180,255,255], dtype=np.uint8) # Original: 20, 255, 255
         
         # extract all pixels that are skin color
         # inRange() returns an array based on the source array, where any pixel in the range is given a 0
@@ -51,7 +51,37 @@ while True:
         # return contours, a list of coordinates in the image that make up the contour
         # blurring the image helps to reduce amount of contours. Idk if this is important yet. 
         contours, hierarchies = cv2.findContours(mask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+
+        # we get many contours stored in the variable "contours". The one with the highest area is the hand contour
+        contour = max(contours, key = lambda x: cv2.contourArea(x))
+
+        # the contour will be imperfect. Best practice is to use approxPolyDP() to expand the contour boundary a bit
+        # the function takes an epsilon and expands the contour by the epsilon amount. True indicates a closed contour
+        # arclength() gets the perimeter of a contour. We use 0.0005 as a hardcoded percentage of the contour 
+        # perimeter to expand the image by. 
+        epsilon = 0.0005*cv2.arcLength(contour,True)
+        approx= cv2.approxPolyDP(contour,epsilon,True)
+        cv2.drawContours(frame, [contour], 0, (0,255,0), 1)
         
+        # create a convex hull around the hand. A convex hull is a polygon that perfectly contains an object using straight lines.
+        # it only has convex angles, no concave angles. It will create vertices at the fingertips when detecting hands.
+        hull = cv2.convexHull(contour)
+        cv2.drawContours(frame, [hull], 0, (0,255,0), 3)
+        
+        # get area of hull and contour
+        hull_area = cv2.contourArea(hull)
+        contour_area = cv2.contourArea(contour)
+      
+        # find the percentage of the area of the convex hull not overlapping with the hand
+        area_ratio = ((hull_area-contour_area) / contour_area) * 100
+
+        # get hull defects. defects are essentially the valleys in a convex hull. since the hull is only convex angles, the defects are
+        # essentially all the would-be concave angles. In a hand, these end up being the valleys between the fingers
+        hull = cv2.convexHull(contour, returnPoints=False)
+        defects = cv2.convexityDefects(approx, hull)
+
+        # cv2.drawContours(frame, [defects], 0, (0,255,0), 3)
+
             
         cv2.imshow('mask',mask)
         cv2.imshow('frame',frame)

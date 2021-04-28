@@ -52,21 +52,21 @@ while True:
         contours, _ = cv2.findContours(mask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
     
         #find contour of max area(hand)
-        cnt = max(contours, key = lambda x: cv2.contourArea(x))
+        contour = max(contours, key = lambda x: cv2.contourArea(x))
         
         #approx the contour a little
-        epsilon = 0.0005*cv2.arcLength(cnt,True)
-        approx= cv2.approxPolyDP(cnt,epsilon,True)
+        epsilon = 0.0005*cv2.arcLength(contour,True)
+        approx= cv2.approxPolyDP(contour,epsilon,True)
        
         #make convex hull around hand
-        hull = cv2.convexHull(cnt)
+        hull = cv2.convexHull(contour)
         
         #define area of hull and area of hand
         areahull = cv2.contourArea(hull)
-        areacnt = cv2.contourArea(cnt)
+        areacontour = cv2.contourArea(contour)
       
         #find the percentage of area not covered by hand in convex hull
-        arearatio=((areahull-areacnt)/areacnt)*100
+        arearatio=((areahull-areacontour)/areacontour)*100
     
         #find the defects in convex hull with respect to hand
         hull = cv2.convexHull(approx, returnPoints=False)
