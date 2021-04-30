@@ -7,13 +7,16 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
 
-GPIO.setup(19, GPIO.OUT)
+GPIO.setup(23, GPIO.OUT)
 
-LOW_TIME = 338.3E-6
+LOW = 338.3E-6
 TOTAL_PERIOD = 20.074E-3
-HIGH_TIME_LOW = 550E-6
-HIGH_TIME_HIGH = 1040E-6
-UNUSED_CHANNEL_TIME = 1000E-6
+UNUSED_CHANNEL = 1000E-6
+
+ROLL = 1000E-6
+PITCH = 1000E-6
+THROTTLE = 400E-6
+YAW = 1000E-6
 
 
 def CtrlC_handler(signum, frame):
@@ -23,64 +26,63 @@ def CtrlC_handler(signum, frame):
 def main():
     print("Use CTRL+C to kill signal")
     signal.signal(signal.SIGINT, CtrlC_handler)
-
-    CYCLE_START_TIME = TOTAL_PERIOD - 9*LOW_TIME - 4*UNUSED_CHANNEL_TIME - 2*HIGH_TIME_HIGH - 2*HIGH_TIME_LOW
-    print(CYCLE_START_TIME * 1000)
+    FIRST = TOTAL_PERIOD - 9*LOW - 4*UNUSED_CHANNEL - ROLL - PITCH - THROTTLE - YAW
+    print(FIRST)
 
     while True:
         # starting pulse
-        GPIO.output(19, 1)
-        time.sleep(CYCLE_START_TIME)
-        GPIO.output(19, 0)
-        time.sleep(LOW_TIME)
+        GPIO.output(23, 1)
+        time.sleep(FIRST)
+        GPIO.output(23, 0)
+        time.sleep(LOW)
 
         # Pulse 1: Roll
-        GPIO.output(19, 1)
-        time.sleep(HIGH_TIME_HIGH)
-        GPIO.output(19, 0)
-        time.sleep(LOW_TIME)
+        GPIO.output(23, 1)
+        time.sleep(ROLL)
+        GPIO.output(23, 0)
+        time.sleep(LOW)
 
         # Pulse 2: Pitch
-        GPIO.output(19, 1)
-        time.sleep(HIGH_TIME_LOW)
-        GPIO.output(19, 0)
-        time.sleep(LOW_TIME)
+        GPIO.output(23, 1)
+        time.sleep(PITCH)
+        GPIO.output(23, 0)
+        time.sleep(LOW)
 
         # Pulse 3: Throttle
-        GPIO.output(19, 1)
-        time.sleep(HIGH_TIME_HIGH)
-        GPIO.output(19, 0)
-        time.sleep(LOW_TIME)
+        GPIO.output(23, 1)
+        time.sleep(THROTTLE)
+        GPIO.output(23, 0)
+        time.sleep(LOW)
 
         # Pulse 4: Yaw
-        GPIO.output(19, 1)
-        time.sleep(HIGH_TIME_LOW)
-        GPIO.output(19, 0)
-        time.sleep(LOW_TIME)
+        GPIO.output(23, 1)
+        time.sleep(YAW)
+        GPIO.output(23, 0)
+        time.sleep(LOW)
 
         # Pulse 5: Unused
-        GPIO.output(19, 1)
-        time.sleep(UNUSED_CHANNEL_TIME)
-        GPIO.output(19, 0)
-        time.sleep(LOW_TIME)
+        GPIO.output(23, 1)
+        time.sleep(UNUSED_CHANNEL)
+        GPIO.output(23, 0)
+        time.sleep(LOW)
 
         # Pulse 6: Unused
-        GPIO.output(19, 1)
-        time.sleep(UNUSED_CHANNEL_TIME)
-        GPIO.output(19, 0)
-        time.sleep(LOW_TIME)
+        GPIO.output(23, 1)
+        time.sleep(UNUSED_CHANNEL)
+        GPIO.output(23, 0)
+        time.sleep(LOW)
 
         # Pulse 7: Unused
-        GPIO.output(19, 1)
-        time.sleep(UNUSED_CHANNEL_TIME)
-        GPIO.output(19, 0)
-        time.sleep(LOW_TIME)
+        GPIO.output(23, 1)
+        time.sleep(UNUSED_CHANNEL)
+        GPIO.output(23, 0)
+        time.sleep(LOW)
 
         # Pulse 8: Unused
-        GPIO.output(19, 1)
-        time.sleep(UNUSED_CHANNEL_TIME)
-        GPIO.output(19, 0)
-        time.sleep(LOW_TIME)
+        GPIO.output(23, 1)
+        time.sleep(UNUSED_CHANNEL)
+        GPIO.output(23, 0)
+        time.sleep(LOW)
     
 
 if __name__ == "__main__":
