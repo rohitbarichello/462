@@ -1,87 +1,216 @@
 import RPi.GPIO as GPIO
 import time
 import signal
+from cv2 import cv2
+import numpy as np
+import math
 
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
-
 GPIO.setup(19, GPIO.OUT)
 
-LOW_TIME = 338.3E-6
 TOTAL_PERIOD = 20.074E-3
-HIGH_TIME_LOW = 550E-6
-HIGH_TIME_HIGH = 1040E-6
-UNUSED_CHANNEL_TIME = 1000E-6
+LOW_PULSE_WIDTH = 338.3E-6
+UNUSED_CHANNEL_PULSE_WIDTH = 1000E-6
 
 
-def CtrlC_handler(signum, frame):
-    exit()    
- 
-    
+def send_ppm(FIRST_PULSE_WIDTH, ROLL_PULSE_WIDTH, PITCH_PULSE_WIDTH, THROTTLE_PULSE_WIDTH, YAW_PULSE_WIDTH):
+    # starting pulse
+    GPIO.output(19, 1)
+    time.sleep(FIRST_PULSE_WIDTH)
+    GPIO.output(19, 0)
+    time.sleep(LOW_PULSE_WIDTH)
+
+    # Pulse 1: Roll
+    GPIO.output(19, 1)
+    time.sleep(ROLL_PULSE_WIDTH)
+    GPIO.output(19, 0)
+    time.sleep(LOW_PULSE_WIDTH)
+
+    # Pulse 2: Pitch
+    GPIO.output(19, 1)
+    time.sleep(PITCH_PULSE_WIDTH)
+    GPIO.output(19, 0)
+    time.sleep(LOW_PULSE_WIDTH)
+
+    # Pulse 3: Throttle
+    GPIO.output(19, 1)
+    time.sleep(THROTTLE_PULSE_WIDTH)
+    GPIO.output(19, 0)
+    time.sleep(LOW_PULSE_WIDTH)
+
+    # Pulse 4: Yaw
+    GPIO.output(19, 1)
+    time.sleep(YAW_PULSE_WIDTH)
+    GPIO.output(19, 0)
+    time.sleep(LOW_PULSE_WIDTH)
+
+    # Pulse 5: Unused
+    GPIO.output(19, 1)
+    time.sleep(UNUSED_CHANNEL_PULSE_WIDTH)
+    GPIO.output(19, 0)
+    time.sleep(LOW_PULSE_WIDTH)
+
+    # Pulse 6: Unused
+    GPIO.output(19, 1)
+    time.sleep(UNUSED_CHANNEL_PULSE_WIDTH)
+    GPIO.output(19, 0)
+    time.sleep(LOW_PULSE_WIDTH)
+
+    # Pulse 7: Unused
+    GPIO.output(19, 1)
+    time.sleep(UNUSED_CHANNEL_PULSE_WIDTH)
+    GPIO.output(19, 0)
+    time.sleep(LOW_PULSE_WIDTH)
+
+    # Pulse 8: Unused
+    GPIO.output(19, 1)
+    time.sleep(UNUSED_CHANNEL_PULSE_WIDTH)
+    GPIO.output(19, 0)
+    time.sleep(LOW_PULSE_WIDTH)
+
+
 def main():
-    print("Use CTRL+C to kill signal")
-    signal.signal(signal.SIGINT, CtrlC_handler)
+    capture = cv2.VideoCapture(0)
 
-    CYCLE_START_TIME = TOTAL_PERIOD - 9*LOW_TIME - 4*UNUSED_CHANNEL_TIME - 2*HIGH_TIME_HIGH - 2*HIGH_TIME_LOW
-    print(CYCLE_START_TIME * 1000)
+    thumbs_up = False
 
-    while True:
-        # starting pulse
-        GPIO.output(19, 1)
-        time.sleep(CYCLE_START_TIME)
-        GPIO.output(19, 0)
-        time.sleep(LOW_TIME)
+    while True:      
+        # each video frame stored in "frame". The frame is 640x480 px
+        ret, frame = capture.read()
+        
+        # define region of interest. interested in the box specified
+        # first set is y bounds second set is x bounds
+        x = 200
+        y = 100
+        x1 = x
+        x2 = 640 - x
+        y1 = y
+        y2 = 480 - y
+        
+        roi=frame[y1:y2, x1:x2]
+        
+        # draw a green rectangle in region of interest
+        # first set is x coordinate and second set is y coordinate
+        cv2.rectangle(frame,(x1,y1),(x2,y2),(0,255,0),0)    
 
-        # Pulse 1: Roll
-        GPIO.output(19, 1)
-        time.sleep(HIGH_TIME_HIGH)
-        GPIO.output(19, 0)
-        time.sleep(LOW_TIME)
+        # convert region of interest, roi, to hsv color space, which is useful for skin color tracking
+        roi_hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+            
+        # define range of skin color in HSV. lower_skin is lightest skin value and upper_skin is darkest
+        skin_lower_bound = np.array([0,55,142], dtype=np.uint8) # Original: 0, 20, 70
+        skin_upper_bound = np.array([180,255,255], dtype=np.uint8) # Original: 20, 255, 255
+        
+        # extract all pixels that are skin color
+        # inRange() returns an array based on the source array, where any pixel in the range is given a 0
+        # and any pixel out of the range is given a 225
+        mask = cv2.inRange(roi_hsv, skin_lower_bound, skin_upper_bound)
+        
+        # extrapolate the hand to fill dark spots within
+        # We're essentially dilating each pixel to cover the black space in the image. this is done "iterations" times
+        # kernel is a 3x3 array of 1's or data type uint8
+        kernel = np.ones((2, 2),np.uint8) # original code used 3 for kernel dimension
+        mask = cv2.dilate(mask, kernel, iterations = 3) # original code used 4 for iterations
+        
+        # blur the image. Original kernal for blur was 5
+        mask = cv2.GaussianBlur(mask,(5,5),100) 
 
-        # Pulse 2: Pitch
-        GPIO.output(19, 1)
-        time.sleep(HIGH_TIME_LOW)
-        GPIO.output(19, 0)
-        time.sleep(LOW_TIME)
+        # return contours, a list of coordinates in the image that make up the contour
+        # blurring the image helps to reduce amount of contours. Idk if this is important yet. 
+        contours, hierarchies = cv2.findContours(mask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
 
-        # Pulse 3: Throttle
-        GPIO.output(19, 1)
-        time.sleep(HIGH_TIME_HIGH)
-        GPIO.output(19, 0)
-        time.sleep(LOW_TIME)
+        # we get many contours stored in the variable "contours". The one with the highest area is the hand contour
+        contour = max(contours, key = lambda x: cv2.contourArea(x))
 
-        # Pulse 4: Yaw
-        GPIO.output(19, 1)
-        time.sleep(HIGH_TIME_LOW)
-        GPIO.output(19, 0)
-        time.sleep(LOW_TIME)
+        # the contour will be imperfect. Best practice is to use approxPolyDP() to expand the contour boundary a bit
+        # the function takes an epsilon and expands the contour by the epsilon amount. True indicates a closed contour
+        # arclength() gets the perimeter of a contour. We use 0.0005 as a hardcoded percentage of the contour 
+        # perimeter to expand the image by. 
+        epsilon = 0.0005*cv2.arcLength(contour,True)
+        approx= cv2.approxPolyDP(contour,epsilon,True)
+        cv2.drawContours(roi, [contour], 0, (0,255,0), 1)
+        # print(contour)
+        
+        # create a convex hull around the hand. A convex hull is a polygon that perfectly contains an object using straight lines.
+        # it only has convex angles, no concave angles. It will create vertices at the fingertips when detecting hands.
+        hull = cv2.convexHull(contour)
+        cv2.drawContours(roi, [hull], 0, (0,255,0), 3)
+        
+        # get area of hull and contour
+        hull_area = cv2.contourArea(hull)
+        contour_area = cv2.contourArea(contour)
 
-        # Pulse 5: Unused
-        GPIO.output(19, 1)
-        time.sleep(UNUSED_CHANNEL_TIME)
-        GPIO.output(19, 0)
-        time.sleep(LOW_TIME)
+        # get centroid of hull
+        hull_moments = cv2.moments(hull)
+        centroid_x = int(hull_moments["m10"] / hull_moments["m00"])
+        centroid_y = int(hull_moments["m01"] / hull_moments["m00"])
+        cv2.circle(roi, (centroid_x, centroid_y), 5, (255, 0, 0))
+        
+        # find the percentage of the area of the convex hull not overlapping with the hand
+        area_ratio = ((hull_area-contour_area) / contour_area) * 100
 
-        # Pulse 6: Unused
-        GPIO.output(19, 1)
-        time.sleep(UNUSED_CHANNEL_TIME)
-        GPIO.output(19, 0)
-        time.sleep(LOW_TIME)
+        # get hull defects. defects are essentially the valleys in a convex hull. since the hull is only convex angles, the defects are
+        # essentially all the would-be concave angles. In a hand, these end up being the valleys between the fingers
+        hull = cv2.convexHull(approx, returnPoints=False)
+        defects = cv2.convexityDefects(approx, hull)
 
-        # Pulse 7: Unused
-        GPIO.output(19, 1)
-        time.sleep(UNUSED_CHANNEL_TIME)
-        GPIO.output(19, 0)
-        time.sleep(LOW_TIME)
+        # finding our relevant defects
+        for i in range(defects.shape[0]):
+            start, end, defect, distance = defects[i,0]
+            start = tuple(approx[start][0])
+            end = tuple(approx[end][0])
+            defect = tuple(approx[defect][0])
+                        
+            # find area of triangle using herons formula
+            a = math.sqrt((end[0] - start[0])**2 + (end[1] - start[1])**2)
+            b = math.sqrt((defect[0] - start[0])**2 + (defect[1] - start[1])**2)
+            c = math.sqrt((end[0] - defect[0])**2 + (end[1] - defect[1])**2)
+            s = (a+b+c)/2
+            triangle_area = math.sqrt(s*(s-a)*(s-b)*(s-c))
 
-        # Pulse 8: Unused
-        GPIO.output(19, 1)
-        time.sleep(UNUSED_CHANNEL_TIME)
-        GPIO.output(19, 0)
-        time.sleep(LOW_TIME)
-    
+            # find distance between the defect point and the convex hull
+            d = (2 * triangle_area) / a
+
+            # law of cosines to find angle formed by triangle formed by two hull vertices and a defect point
+            angle = math.acos((b**2 + c**2 - a**2)/(2*b*c))
+            
+            # # ignore angles > 90 and ignore points very close to convex hull(they generally come due to noise)
+            if angle <= 120 and d > 20:
+                cv2.circle(roi, defect, 3, [0,0,255])
+
+        # code to see if thumbs up is the hand gesture
+        # the code
+                    
+        # print "Thumbs Up" if thumbs up is detected
+        if thumbs_up:
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            cv2.putText(frame,'Thumbs Up', (0, 50), font, 2, (0,0,255), 3, cv2.LINE_AA)
+                    
+        # display video feeds
+        cv2.imshow('mask',mask)
+        cv2.imshow('frame',frame)
+
+        # calculate pulse width times for 4 quadcopter channels
+        ROLL_PULSE_WIDTH = 550E-6
+        PITCH_PULSE_WIDTH = 550E-6
+        THROTTLE_PULSE_WIDTH = 550E-6
+        YAW_PULSE_WIDTH = 550E-6
+
+        # send ppm signal
+        FIRST_PULSE_WIDTH = TOTAL_PERIOD - 9*LOW_PULSE_WIDTH - 4*UNUSED_CHANNEL_PULSE_WIDTH - ROLL_PULSE_WIDTH - PITCH_PULSE_WIDTH - THROTTLE_PULSE_WIDTH - YAW_PULSE_WIDTH
+
+        send_ppm(FIRST_PULSE_WIDTH, ROLL_PULSE_WIDTH, PITCH_PULSE_WIDTH, THROTTLE_PULSE_WIDTH, YAW_PULSE_WIDTH)
+            
+        # exit image recognition if "d" is entered from the keyboard
+        if cv2.waitKey(20) & 0xFF == ord('d'):
+            break
+        
+
+    cv2.destroyAllWindows()
+    capture.release()    
+
 
 if __name__ == "__main__":
     main()
