@@ -12,70 +12,115 @@ GPIO.setwarnings(False)
 GPIO.setup(19, GPIO.OUT)
 
 TOTAL_PERIOD = 20.074E-3
-LOW_PULSE_WIDTH = 338.3E-6
-UNUSED_CHANNEL_PULSE_WIDTH = 1000E-6
+
+LOW = 338.3E-6
+UNUSED_CHANNEL = 1000E-6
+YAW = 1500E-6
+PITCH = 1500E-6
 
 
-def send_ppm(FIRST_PULSE_WIDTH, ROLL_PULSE_WIDTH, PITCH_PULSE_WIDTH, THROTTLE_PULSE_WIDTH, YAW_PULSE_WIDTH):
+ASCENT_HAND_RATIO = 18
+DESCENT_HAND_RATIO = 5
+
+font = cv2.FONT_HERSHEY_SIMPLEX
+
+
+def send_ppm(FIRST, ROLL, PITCH, THROTTLE, YAW):
     # starting pulse
     GPIO.output(19, 1)
-    time.sleep(FIRST_PULSE_WIDTH)
+    time.sleep(FIRST)
     GPIO.output(19, 0)
-    time.sleep(LOW_PULSE_WIDTH)
+    time.sleep(LOW)
 
     # Pulse 1: Roll
     GPIO.output(19, 1)
-    time.sleep(ROLL_PULSE_WIDTH)
+    time.sleep(ROLL)
     GPIO.output(19, 0)
-    time.sleep(LOW_PULSE_WIDTH)
+    time.sleep(LOW)
 
     # Pulse 2: Pitch
     GPIO.output(19, 1)
-    time.sleep(PITCH_PULSE_WIDTH)
+    time.sleep(PITCH)
     GPIO.output(19, 0)
-    time.sleep(LOW_PULSE_WIDTH)
+    time.sleep(LOW)
 
     # Pulse 3: Throttle
     GPIO.output(19, 1)
-    time.sleep(THROTTLE_PULSE_WIDTH)
+    time.sleep(THROTTLE)
     GPIO.output(19, 0)
-    time.sleep(LOW_PULSE_WIDTH)
+    time.sleep(LOW)
 
     # Pulse 4: Yaw
     GPIO.output(19, 1)
-    time.sleep(YAW_PULSE_WIDTH)
+    time.sleep(YAW)
     GPIO.output(19, 0)
-    time.sleep(LOW_PULSE_WIDTH)
+    time.sleep(LOW)
 
     # Pulse 5: Unused
     GPIO.output(19, 1)
-    time.sleep(UNUSED_CHANNEL_PULSE_WIDTH)
+    time.sleep(UNUSED_CHANNEL)
     GPIO.output(19, 0)
-    time.sleep(LOW_PULSE_WIDTH)
+    time.sleep(LOW)
 
     # Pulse 6: Unused
     GPIO.output(19, 1)
-    time.sleep(UNUSED_CHANNEL_PULSE_WIDTH)
+    time.sleep(UNUSED_CHANNEL)
     GPIO.output(19, 0)
-    time.sleep(LOW_PULSE_WIDTH)
+    time.sleep(LOW)
 
     # Pulse 7: Unused
     GPIO.output(19, 1)
-    time.sleep(UNUSED_CHANNEL_PULSE_WIDTH)
+    time.sleep(UNUSED_CHANNEL)
     GPIO.output(19, 0)
-    time.sleep(LOW_PULSE_WIDTH)
+    time.sleep(LOW)
 
     # Pulse 8: Unused
     GPIO.output(19, 1)
-    time.sleep(UNUSED_CHANNEL_PULSE_WIDTH)
+    time.sleep(UNUSED_CHANNEL)
     GPIO.output(19, 0)
-    time.sleep(LOW_PULSE_WIDTH)
+    time.sleep(LOW)
 
+def initiate_ascent():
+    print('Ascending')
 
-def main():
+    ROLL = 1500E-6
+    THROTTLE = 884E-6
+
+    MAX_THROTTLE = 900E-6
+    step = (MAX_THROTTLE - THROTTLE ) / 400
+    
+    for i in range(400):
+        THROTTLE += step
+
+        FIRST = TOTAL_PERIOD - 9*LOW - 4*UNUSED_CHANNEL - ROLL - PITCH - THROTTLE - YAW
+        
+        send_ppm(FIRST, ROLL, PITCH, THROTTLE, YAW)
+        
+        time.sleep(0.01)
+
+    return THROTTLE
+
+def initiate_descent(CURRENT_THROTTLE):
+    print("Descending")
+
+    ROLL = 1500E-6
+    THROTTLE = CURRENT_THROTTLE
+
+    step = (CURRENT_THROTTLE - 884E-6 ) / 800
+    
+    for i in range(800):
+        THROTTLE -= step
+
+        FIRST = TOTAL_PERIOD - 9*LOW - 4*UNUSED_CHANNEL - ROLL - PITCH - THROTTLE - YAW
+        
+        send_ppm(FIRST, ROLL, PITCH, THROTTLE, YAW)
+        
+        time.sleep(0.01)
+
+    exit()
+
+def main(AIRBORNE, THROTTLE):
     capture = cv2.VideoCapture(0)
-
-    thumbs_up = False
 
     while True:      
         # each video frame stored in "frame". The frame is 640x480 px
@@ -147,61 +192,40 @@ def main():
         centroid_x = int(hull_moments["m10"] / hull_moments["m00"])
         centroid_y = int(hull_moments["m01"] / hull_moments["m00"])
         cv2.circle(roi, (centroid_x, centroid_y), 5, (255, 0, 0))
-        
-        # find the percentage of the area of the convex hull not overlapping with the hand
-        area_ratio = ((hull_area-contour_area) / contour_area) * 100
 
-        # get hull defects. defects are essentially the valleys in a convex hull. since the hull is only convex angles, the defects are
-        # essentially all the would-be concave angles. In a hand, these end up being the valleys between the fingers
-        hull = cv2.convexHull(approx, returnPoints=False)
-        defects = cv2.convexityDefects(approx, hull)
+        # code to see if majority hand is in roi
+        hand_to_roi_ratio = (contour_area / 67200) * 100
 
-        # finding our relevant defects
-        for i in range(defects.shape[0]):
-            start, end, defect, distance = defects[i,0]
-            start = tuple(approx[start][0])
-            end = tuple(approx[end][0])
-            defect = tuple(approx[defect][0])
-                        
-            # find area of triangle using herons formula
-            a = math.sqrt((end[0] - start[0])**2 + (end[1] - start[1])**2)
-            b = math.sqrt((defect[0] - start[0])**2 + (defect[1] - start[1])**2)
-            c = math.sqrt((end[0] - defect[0])**2 + (end[1] - defect[1])**2)
-            s = (a+b+c)/2
-            triangle_area = math.sqrt(s*(s-a)*(s-b)*(s-c))
-
-            # find distance between the defect point and the convex hull
-            d = (2 * triangle_area) / a
-
-            # law of cosines to find angle formed by triangle formed by two hull vertices and a defect point
-            angle = math.acos((b**2 + c**2 - a**2)/(2*b*c))
-            
-            # # ignore angles > 90 and ignore points very close to convex hull(they generally come due to noise)
-            if angle <= 120 and d > 20:
-                cv2.circle(roi, defect, 3, [0,0,255])
-
-        # code to see if thumbs up is the hand gesture
-        # the code
+        if AIRBORNE:
+            if hand_to_roi_ratio < DESCENT_HAND_RATIO:
+                initiate_descent(CURRENT_THROTTLE)
+        else:
+            if hand_to_roi_ratio > ASCENT_HAND_RATIO:
+                THROTTTLE = initiate_ascent()
+                print("Airborne")
+                AIRBORNE = True       
                     
-        # print "Thumbs Up" if thumbs up is detected
-        if thumbs_up:
-            font = cv2.FONT_HERSHEY_SIMPLEX
-            cv2.putText(frame,'Thumbs Up', (0, 50), font, 2, (0,0,255), 3, cv2.LINE_AA)
-                    
-        # display video feeds
+        # # display video feeds
         cv2.imshow('mask',mask)
         cv2.imshow('frame',frame)
 
         # calculate pulse width times for 4 quadcopter channels
-        ROLL_PULSE_WIDTH = 550E-6
-        PITCH_PULSE_WIDTH = 550E-6
-        THROTTLE_PULSE_WIDTH = 550E-6
-        YAW_PULSE_WIDTH = 550E-6
+        centroid_x_trans = centroid_x - 320
+        centroid_y_trans = centroid_y - 240
+
+        percent_deviation_x = centroid_x_trans / 120
+        percent_deviation_y = centroid_y_trans / 160
+
+        x_factor = (1 + percent_deviation_x) if percent_deviation_x > 0 else (-1 + percent_deviation_x)
+        y_factor = (1 + percent_deviation_y) if percent_deviation_y > 0 else (-1 + percent_deviation_y)
+
+        ROLL = 1500E-6 * (x_factor)
+        THROTTLE = 884E-6 * (y_factor)
+x
+        FIRST = TOTAL_PERIOD - 9*LOW - 4*UNUSED_CHANNEL - ROLL - PITCH - THROTTLE - YAW
 
         # send ppm signal
-        FIRST_PULSE_WIDTH = TOTAL_PERIOD - 9*LOW_PULSE_WIDTH - 4*UNUSED_CHANNEL_PULSE_WIDTH - ROLL_PULSE_WIDTH - PITCH_PULSE_WIDTH - THROTTLE_PULSE_WIDTH - YAW_PULSE_WIDTH
-
-        send_ppm(FIRST_PULSE_WIDTH, ROLL_PULSE_WIDTH, PITCH_PULSE_WIDTH, THROTTLE_PULSE_WIDTH, YAW_PULSE_WIDTH)
+        send_ppm(FIRST, ROLL, PITCH, THROTTLE, YAW)
             
         # exit image recognition if "d" is entered from the keyboard
         if cv2.waitKey(20) & 0xFF == ord('d'):
@@ -213,5 +237,41 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    AIRBORNE = False
+    CURRENT_THROTTTLE = 884E-6
+    main(AIRBORNE, THROTTTLE)
+
+
+        
+# # find the percentage of the area of the convex hull not overlapping with the hand
+# area_ratio = ((hull_area-contour_area) / contour_area) * 100
+
+# # get hull defects. defects are essentially the valleys in a convex hull. since the hull is only convex angles, the defects are
+# # essentially all the would-be concave angles. In a hand, these end up being the valleys between the fingers
+# hull = cv2.convexHull(approx, returnPoints=False)
+# defects = cv2.convexityDefects(approx, hull)
+
+# # finding our relevant defects
+# for i in range(defects.shape[0]):
+#     start, end, defect, distance = defects[i,0]
+#     start = tuple(approx[start][0])
+#     end = tuple(approx[end][0])
+#     defect = tuple(approx[defect][0])
+                
+#     # find area of triangle using herons formula
+#     a = math.sqrt((end[0] - start[0])**2 + (end[1] - start[1])**2)
+#     b = math.sqrt((defect[0] - start[0])**2 + (defect[1] - start[1])**2)
+#     c = math.sqrt((end[0] - defect[0])**2 + (end[1] - defect[1])**2)
+#     s = (a+b+c)/2
+#     triangle_area = math.sqrt(s*(s-a)*(s-b)*(s-c))
+
+#     # find distance between the defect point and the convex hull
+#     d = (2 * triangle_area) / a
+
+#     # law of cosines to find angle formed by triangle formed by two hull vertices and a defect point
+#     angle = math.acos((b**2 + c**2 - a**2)/(2*b*c))
+    
+#     # # ignore angles > 90 and ignore points very close to convex hull(they generally come due to noise)
+#     if angle <= 120 and d > 20:
+#         cv2.circle(roi, defect, 3, [0,0,255])
 

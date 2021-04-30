@@ -1,9 +1,16 @@
 from __future__ import print_function
 from cv2 import cv2
 import argparse
-
 import os
-os.environ['DISPLAY'] = ':0'
+import time
+
+# time.sleep(1)
+
+# os.system('export DISPLAY=:0')
+# os.system('xhost local:root')
+# os.environ['DISPLAY'] = ':0'
+
+
 
 max_value = 255
 max_value_H = 360//2
