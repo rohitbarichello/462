@@ -1,6 +1,10 @@
 from __future__ import print_function
 from cv2 import cv2
 import argparse
+
+import os
+os.environ['DISPLAY'] = ':0'
+
 max_value = 255
 max_value_H = 360//2
 low_H = 0

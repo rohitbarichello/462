@@ -1,0 +1,10 @@
+[Unit]
+Description=Service for hsv_test
+After=multi-user.target
+
+[Service]
+Type=idle
+ExecStart=/usr/bin/python3 /home/pi/462/project/hsv_test.py
+
+[Install]
+WantedBy=multi-user.target
