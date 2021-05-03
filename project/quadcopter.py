@@ -56,10 +56,13 @@ def camera(roll_q, throttle_q):
 
     while True:   
         try:   
+            # each video frame stored in "frame". The frame is 640x480 px
             ret, frame = capture.read()
 
             frame = cv2.flip(frame, 1)
 
+            # define region of interest. interested in the box specified
+            # first set is y bounds second set is x bounds
             x = 200
             y = 100
             x1 = x
@@ -69,20 +72,31 @@ def camera(roll_q, throttle_q):
             
             roi=frame[y1:y2, x1:x2]
             
+            # draw a green rectangle in region of interest
+            # first set is x coordinate and second set is y coordinate
             cv2.rectangle(frame,(x1,y1),(x2,y2),(0,255,0),0)    
 
+            # convert region of interest, roi, to hsv color space, which is useful for skin color tracking
             roi_hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-                
-            skin_lower_bound = np.array([0,20,70], dtype=np.uint8) # Original: 0, 20, 70
-            skin_upper_bound = np.array([20,255,255], dtype=np.uint8) # Original: 20, 255, 255
+
+            # define range of skin color in HSV. lower_skin is lightest skin value and upper_skin is darkest
+            skin_lower_bound = np.array([0,20,70], dtype=np.uint8) # Base: 0, 20, 70
+            skin_upper_bound = np.array([20,255,255], dtype=np.uint8) # Base: 20, 255, 255
             
+            # extract all pixels that are skin color
+            # inRange() returns an array based on the source array, where any pixel in the range is given a 0
+            # and any pixel out of the range is given a 225
             mask = cv2.inRange(roi_hsv, skin_lower_bound, skin_upper_bound)
             
-            kernel = np.ones((2, 2),np.uint8) # original code used 3 for kernel dimension
-            mask = cv2.dilate(mask, kernel, iterations = 3) # original code used 4 for iterations
+            # extrapolate the hand to fill dark spots within
+            # We're essentially dilating each pixel to cover the black space in the image. this is done "iterations" times
+            # kernel is a 3x3 array of 1's or data type uint8
+            kernel = np.ones((2, 2),np.uint8) 
+            mask = cv2.dilate(mask, kernel, iterations = 3) 
             
             mask = cv2.GaussianBlur(mask,(5,5),100) 
 
+            # return image contours
             contours, hierarchies = cv2.findContours(mask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
 
             if len(contours) > 0:
@@ -92,12 +106,15 @@ def camera(roll_q, throttle_q):
                 approx= cv2.approxPolyDP(contour,epsilon,True)
                 cv2.drawContours(roi, [contour], 0, (0,255,0), 1)
                 
+                # create a convex hull around the hand.
                 hull = cv2.convexHull(contour)
                 cv2.drawContours(roi, [hull], 0, (0,255,0), 3)
                 
+                # get area of hull and contour
                 hull_area = cv2.contourArea(hull)
                 contour_area = cv2.contourArea(contour)
 
+                # find the centroid of the convex hull. this will be tracked to map to ppms
                 hull_moments = cv2.moments(hull)
                 centroid_x = int(hull_moments["m10"] / hull_moments["m00"])
                 centroid_y = int(hull_moments["m01"] / hull_moments["m00"])
@@ -106,8 +123,11 @@ def camera(roll_q, throttle_q):
                 cv2.imshow('mask',mask)
                 cv2.imshow('frame',frame)
 
+                # this is the percentage of the region of interest that's covered by the hand
                 hand_to_roi_ratio = (contour_area / 67200) * 100 
 
+                # if the flight controller is airborne and the hand is removed from the rio, land the quadcopter
+                # otherwise, this is the beginning of program execution, so set airborne to true
                 if airborne:
                     if hand_to_roi_ratio < DESCENT_HAND_RATIO:
                         initiate_descent(THROTTLE)
@@ -125,6 +145,10 @@ def camera(roll_q, throttle_q):
                 x_factor = (1 + percent_deviation_x)
                 y_factor = (1 + percent_deviation_y)
 
+                # the hardcoded numbers, 950 and 400 are the pules widths neccessary to signal to the filght controller
+                # that roll and throttle are idle, i.e the drone shouldn't move up or horizontally.
+                # we multiply those values by the centroid's deviation from the center of the region of interest
+                # to decide by how much we should signal the drone to move up down left or right.
                 ROLL = 950E-6 * x_factor
                 THROTTLE = 400E-6 * y_factor
 
@@ -144,6 +168,7 @@ def camera(roll_q, throttle_q):
     capture.release()    
 
 
+# function to send ppm signals to quad via gpio
 def ppm(roll_q, throttle_q): 
     print("ppm thread")
 

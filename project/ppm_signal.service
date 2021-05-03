@@ -1,0 +1,10 @@
+[Unit]
+Description=Send a basic ppm signal
+After=multi-user.target
+
+[Service]
+Type=idle
+ExecStart=/usr/bin/python3 /home/pi/462/project/ppm.py
+
+[Install]
+WantedBy=multi-user.target
